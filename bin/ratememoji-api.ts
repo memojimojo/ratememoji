@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
+import {RateMemoji} from '../lib/ratememoji';
 import cdk = require('@aws-cdk/core');
-import { RatememojiApiStack } from '../lib/ratememoji-api-stack';
 
 const app = new cdk.App();
-new RatememojiApiStack(app, 'RatememojiApiStack');
+new RateMemoji(app, 'RateMemoji', {env: {account: process.env.ACCOUNT_ID, region: process.env.REGION}});
