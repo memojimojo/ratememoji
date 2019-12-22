@@ -21,7 +21,13 @@
     "typescript": "~3.7.2"
   },
   "dependencies": {
+    "@aws-cdk/aws-apigateway": "^1.19.0",
+    "@aws-cdk/aws-lambda": "^1.19.0",
+    "@aws-cdk/aws-s3": "^1.19.0",
+    "@aws-cdk/aws-ses": "^1.19.0",
+    "@aws-cdk/aws-ses-actions": "^1.19.0",
     "@aws-cdk/core": "^1.19.0",
+    "nodemailer": "^6.4.2",
     "source-map-support": "^0.5.16"
   }
 }
