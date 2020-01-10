@@ -10,7 +10,8 @@ export class ApiStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
         super(scope, id, props);
 
-        const bucket = new s3.Bucket(this, 'EmailBucket');
+        const mailBucket = new s3.Bucket(this, 'EmailBucket');
+        const userBucket = new s3.Bucket(this, 'UserBucket');
 
         const requestUpload = new lambda.Function(this, 'RequestUpload', {
             code: lambda.Code.fromAsset(path.join(__dirname, '../resources/request-upload')),
@@ -24,11 +25,13 @@ export class ApiStack extends cdk.Stack {
             runtime: lambda.Runtime.NODEJS_12_X,
             timeout: cdk.Duration.seconds(10),
             environment: {
-                BUCKET_NAME: bucket.bucketName
+                MAIL_BUCKET: mailBucket.bucketName,
+                USER_BUCKET: userBucket.bucketName,
             }
         });
 
-        bucket.grantRead(processEmail);
+        mailBucket.grantRead(processEmail);
+        userBucket.grantPut(processEmail);
 
         const api = new apigateway.RestApi(this, 'Gateway', {
             restApiName: 'RateMemoji API'
@@ -40,10 +43,10 @@ export class ApiStack extends cdk.Stack {
         new ses.ReceiptRuleSet(this, 'RuleSet', {
             rules: [
                 {
-                    recipients: ['doreply@ratememoji.com'],
+                    recipients: ['doreply@' + process.env.DOMAIN_NAME],
                     actions: [
                         new sesactions.S3({
-                            bucket,
+                            bucket: mailBucket,
                         }),
                         new sesactions.Lambda({
                             function: processEmail,
