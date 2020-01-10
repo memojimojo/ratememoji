@@ -11,24 +11,21 @@ exports.handler = async function (event, context) {
     }).promise();
     const mail = await simpleParser(stream.Body);
     const userId = mail.subject;
-    const acceptableMimeTypes = [
-        'image/jpeg',
-        'image/png',
-    ];
-    const attachments = mail.attachments.filter(attachment => acceptableMimeTypes.includes(attachment.contentType));
-    if (attachments.length === 2) {
+    const attachments = mail.attachments;
+    const memoji = attachments.find(it => it.contentType === 'image/png');
+    const profile = attachments.find(it => it.contentType === 'image/jpeg');
+    if (memoji && profile) {
         await Promise.all([
             s3.putObject({
                 Bucket: process.env.USER_BUCKET,
                 Key: userId + '/memoji.png',
-                Body: attachments[0].content,
+                Body: memoji.content,
             }).promise(),
             s3.putObject({
                 Bucket: process.env.USER_BUCKET,
                 Key: userId + '/profile.jpg',
-                Body: attachments[1].content,
+                Body: profile.content,
             }).promise(),
         ])
     }
-    console.log(JSON.stringify(mail));
 };
