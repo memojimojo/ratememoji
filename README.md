@@ -1,5 +1,15 @@
 # Welcome to your CDK TypeScript project!
 
+## Fix Sharp Linux binary
+
+Before running `cdk deploy`:
+
+```shell script
+cd resources/process-image
+rm -r node_modules/sharp
+npm install --arch=x64 --platform=linux sharp --target=12.14.1
+```
+
 This is a blank project for TypeScript development with CDK.
 
 The `cdk.json` file tells the CDK Toolkit how to execute your app.

@@ -2,9 +2,11 @@ import cdk = require('@aws-cdk/core');
 import lambda = require('@aws-cdk/aws-lambda');
 import path = require('path');
 import apigateway = require('@aws-cdk/aws-apigateway');
+import iam = require('@aws-cdk/aws-iam');
 import ses = require('@aws-cdk/aws-ses');
 import sesactions = require('@aws-cdk/aws-ses-actions');
 import s3 = require('@aws-cdk/aws-s3');
+import s3n = require('@aws-cdk/aws-s3-notifications');
 
 export class ApiStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -55,5 +57,29 @@ export class ApiStack extends cdk.Stack {
                 }
             ]
         });
+
+        this.processImage(userBucket);
+    }
+
+    private processImage(bucket: s3.Bucket) {
+        const rekognitionPolicy = new iam.PolicyStatement({
+            resources: ['*'],
+            actions: [
+                'rekognition:*',
+            ]
+        });
+
+        const processImage = new lambda.Function(this, 'ProcessImage', {
+            code: lambda.Code.fromAsset(path.join(__dirname, '../resources/process-image')),
+            handler: 'process-image.handler',
+            runtime: lambda.Runtime.NODEJS_12_X,
+            initialPolicy: [
+                rekognitionPolicy
+            ]
+        });
+
+        bucket.grantRead(processImage);
+        bucket.grantPut(processImage);
+        bucket.addObjectCreatedNotification(new s3n.LambdaDestination(processImage));
     }
 }

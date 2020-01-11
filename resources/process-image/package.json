@@ -1,0 +1,17 @@
+{
+  "name": "process-image",
+  "version": "1.0.0",
+  "description": "",
+  "main": "process-image.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "sharp": "^0.23.4"
+  },
+  "os": [
+    "linux"
+  ]
+}
