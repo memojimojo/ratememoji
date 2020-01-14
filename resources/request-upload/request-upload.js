@@ -1,4 +1,5 @@
 const {SES} = require('aws-sdk');
+const uuid = require('uuid/v4');
 
 exports.handler = async function (event, context) {
     try {
@@ -8,6 +9,8 @@ exports.handler = async function (event, context) {
             if (json.email) {
                 // TODO validate e-mail including DNS
 
+                // Generate user id
+                const userId = uuid();
                 const ses = new SES({apiVersion: '2010-12-01'});
                 await ses.sendTemplatedEmail({
                     Destination: {
@@ -17,7 +20,7 @@ exports.handler = async function (event, context) {
                     ReplyToAddresses: [process.env.EMAIL],
                     Template: 'RequestUploadTemplate',
                     TemplateData: JSON.stringify({
-                        user_id: "BLA"
+                        user_id: userId
                     }),
                 })
                     .promise()

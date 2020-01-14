@@ -8,6 +8,7 @@ import sesactions = require('@aws-cdk/aws-ses-actions');
 import s3 = require('@aws-cdk/aws-s3');
 import s3n = require('@aws-cdk/aws-s3-notifications');
 import {RestApi} from "@aws-cdk/aws-apigateway";
+import {LayerVersion} from "@aws-cdk/aws-lambda";
 
 export class ApiStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -50,30 +51,29 @@ export class ApiStack extends cdk.Stack {
             ]
         });
 
-        this.requestUpload(api);
+        const usersLayer = new lambda.LayerVersion(this, 'Users', {
+            code: lambda.Code.fromAsset(path.join(__dirname, '../layers/users')),
+        });
+
+        this.requestUpload(api, usersLayer);
         this.processImage(userBucket);
-
-
-        // console.log(template.ref);
-        // console.log(template.logicalId);
-        // console.log(template);
-
-        // cdk.CfnInclude
-
     }
 
-    private async requestUpload(api: RestApi) {
-        const template = new ses.CfnTemplate(this, 'RequestUploadTemplate', {
+    private async requestUpload(api: RestApi, ...layers: LayerVersion[]) {
+        new ses.CfnTemplate(this, 'RequestUploadTemplate', {
             template: {
                 templateName: 'RequestUploadTemplate',
-                htmlPart: "Hey! Welcome to RateMemoji. Please reply to this e-mail and attach both your Memoji and a photo of your face.",
-                subjectPart: "Welcome to RateMemoji {{user_id}}"
+                htmlPart: 'Hey! Welcome to RateMemoji. Please reply to this e-mail and attach both your Memoji and a photo of your face.<br><br>' +
+                    'Make sure to keep the line below:<br><br>' +
+                    'id: {{user_id}}',
+                subjectPart: "Welcome to RateMemoji"
             },
         });
         const requestUpload = new lambda.Function(this, 'RequestUpload', {
             code: lambda.Code.fromAsset(path.join(__dirname, '../resources/request-upload')),
             handler: 'request-upload.handler',
             runtime: lambda.Runtime.NODEJS_12_X,
+            layers: layers,
             environment: {
                 EMAIL: process.env.EMAIL!
             },

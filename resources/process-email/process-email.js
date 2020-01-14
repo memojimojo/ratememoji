@@ -10,11 +10,15 @@ exports.handler = async function (event, context) {
         Key: messageId
     }).promise();
     const mail = await simpleParser(stream.Body);
-    const userId = mail.subject;
+
+    // Find user id.
+    const matches = mail.html.match(/id: ([0-9a-f-]{36})/);
+
     const attachments = mail.attachments;
     const memoji = attachments.find(it => it.contentType === 'image/png');
     const profile = attachments.find(it => it.contentType === 'image/jpeg');
-    if (memoji && profile) {
+    if (memoji && profile && matches) {
+        const userId = matches[1];
         await Promise.all([
             s3.putObject({
                 Bucket: process.env.USER_BUCKET,
