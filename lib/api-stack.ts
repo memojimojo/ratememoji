@@ -7,6 +7,7 @@ import ses = require('@aws-cdk/aws-ses');
 import sesactions = require('@aws-cdk/aws-ses-actions');
 import s3 = require('@aws-cdk/aws-s3');
 import s3n = require('@aws-cdk/aws-s3-notifications');
+import {RestApi} from "@aws-cdk/aws-apigateway";
 
 export class ApiStack extends cdk.Stack {
     constructor(scope: cdk.Construct, id: string, props?: cdk.StackProps) {
@@ -14,12 +15,6 @@ export class ApiStack extends cdk.Stack {
 
         const mailBucket = new s3.Bucket(this, 'EmailBucket');
         const userBucket = new s3.Bucket(this, 'UserBucket');
-
-        const requestUpload = new lambda.Function(this, 'RequestUpload', {
-            code: lambda.Code.fromAsset(path.join(__dirname, '../resources/request-upload')),
-            handler: 'request-upload.handler',
-            runtime: lambda.Runtime.NODEJS_12_X
-        });
 
         const processEmail = new lambda.Function(this, 'ProcessEmail', {
             code: lambda.Code.fromAsset(path.join(__dirname, '../resources/process-email')),
@@ -39,13 +34,10 @@ export class ApiStack extends cdk.Stack {
             restApiName: 'RateMemoji API'
         });
 
-        const uploadRequests = api.root.addResource('upload-requests');
-        uploadRequests.addMethod('POST', new apigateway.LambdaIntegration(requestUpload));
-
         new ses.ReceiptRuleSet(this, 'RuleSet', {
             rules: [
                 {
-                    recipients: ['doreply@' + process.env.DOMAIN_NAME],
+                    recipients: [process.env.EMAIL!],
                     actions: [
                         new sesactions.S3({
                             bucket: mailBucket,
@@ -58,7 +50,45 @@ export class ApiStack extends cdk.Stack {
             ]
         });
 
+        this.requestUpload(api);
         this.processImage(userBucket);
+
+
+        // console.log(template.ref);
+        // console.log(template.logicalId);
+        // console.log(template);
+
+        // cdk.CfnInclude
+
+    }
+
+    private async requestUpload(api: RestApi) {
+        const template = new ses.CfnTemplate(this, 'RequestUploadTemplate', {
+            template: {
+                templateName: 'RequestUploadTemplate',
+                htmlPart: "Hey! Welcome to RateMemoji. Please reply to this e-mail and attach both your Memoji and a photo of your face.",
+                subjectPart: "Welcome to RateMemoji {{user_id}}"
+            },
+        });
+        const requestUpload = new lambda.Function(this, 'RequestUpload', {
+            code: lambda.Code.fromAsset(path.join(__dirname, '../resources/request-upload')),
+            handler: 'request-upload.handler',
+            runtime: lambda.Runtime.NODEJS_12_X,
+            environment: {
+                EMAIL: process.env.EMAIL!
+            },
+            initialPolicy: [
+                new iam.PolicyStatement({
+                    resources: ['*'],
+                    actions: [
+                        'ses:SendTemplatedEmail'
+                    ]
+                })
+
+            ]
+        });
+        const uploadRequests = api.root.addResource('upload-requests');
+        uploadRequests.addMethod('POST', new apigateway.LambdaIntegration(requestUpload));
     }
 
     private processImage(bucket: s3.Bucket) {

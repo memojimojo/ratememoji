@@ -1,22 +1,25 @@
-const AWS = require('aws-sdk');
+const {SES} = require('aws-sdk');
 
 exports.handler = async function (event, context) {
     try {
         if (event.httpMethod === "POST") {
+            console.log(process.env.TEMPLATE);
             const json = JSON.parse(event.body);
             if (json.email) {
                 // TODO validate e-mail including DNS
 
-                new AWS.SES({apiVersion: '2010-12-01'})
-                    .sendTemplatedEmail({
-                        Destination: {
-                            ToAddresses: [json.email]
-                        },
-                        Source: 'doreply@ratememoji.com',
-                        ReplyToAddresses: ['doreply@ratememoji.com'],
-                        Template: 'TEMPLATE_NAME',
-                        TemplateData: JSON.stringify({BLI: "BLA"}),
-                    })
+                const ses = new SES({apiVersion: '2010-12-01'});
+                await ses.sendTemplatedEmail({
+                    Destination: {
+                        ToAddresses: [json.email]
+                    },
+                    Source: 'RateMemoji <' + process.env.EMAIL + '>',
+                    ReplyToAddresses: [process.env.EMAIL],
+                    Template: 'RequestUploadTemplate',
+                    TemplateData: JSON.stringify({
+                        user_id: "BLA"
+                    }),
+                })
                     .promise()
                     .then(
                         (data) => console.log(data)
@@ -26,8 +29,7 @@ exports.handler = async function (event, context) {
 
             return {
                 statusCode: 200,
-                headers: {},
-                body: JSON.stringify(body)
+                headers: {}
             };
         }
 
