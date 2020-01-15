@@ -12,7 +12,7 @@ exports.handler = async function (event) {
     const mail = await simpleParser(stream.Body);
     const token = extractRequestUploadToken(mail.html);
     if (token) {
-        const userId = await findUserId(token);
+        const userId = await checkUserId(token);
         const attachments = mail.attachments;
         const memoji = attachments.find(it => it.contentType === 'image/png');
         const profile = attachments.find(it => it.contentType === 'image/jpeg');
@@ -40,10 +40,11 @@ function extractRequestUploadToken(mailBody) {
     }
 }
 
-async function findUserId(requestUploadToken) {
-    return await dynamoDb.getItem({
+async function checkUserId(requestUploadToken) {
+    return await dynamoDb.deleteItem({
+        ReturnValues: "ALL_OLD",
         TableName: 'RequestUploadTokens',
         Key: {token: {S: requestUploadToken}}
     }).promise()
-        .then(user => user.Item.userId.S);
+        .then(user => user.Attributes.userId.S);
 }
