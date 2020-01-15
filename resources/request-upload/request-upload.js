@@ -1,16 +1,33 @@
-const {SES} = require('aws-sdk');
+const {userIdFromEmail} = require('/opt/nodejs/users');
+const {DynamoDB, SES} = require('aws-sdk');
 const uuid = require('uuid/v4');
 
-exports.handler = async function (event, context) {
+exports.handler = async function (event) {
     try {
         if (event.httpMethod === "POST") {
-            console.log(process.env.TEMPLATE);
             const json = JSON.parse(event.body);
             if (json.email) {
                 // TODO validate e-mail including DNS
 
-                // Generate user id
-                const userId = uuid();
+                const userId = userIdFromEmail(json.email);
+                const requestUploadToken = uuid();
+                const dynamoDb = new DynamoDB();
+                await Promise.all([
+                    await dynamoDb.putItem({
+                        TableName: 'Users',
+                        Item: {
+                            id: {S: userId}
+                        }
+                    }).promise(),
+                    await dynamoDb.putItem({
+                        TableName: 'RequestUploadTokens',
+                        Item: {
+                            token: {S: requestUploadToken},
+                            userId: {S: userId}
+                        }
+                    }).promise()
+                ]);
+
                 const ses = new SES({apiVersion: '2010-12-01'});
                 await ses.sendTemplatedEmail({
                     Destination: {
@@ -20,7 +37,7 @@ exports.handler = async function (event, context) {
                     ReplyToAddresses: [process.env.EMAIL],
                     Template: 'RequestUploadTemplate',
                     TemplateData: JSON.stringify({
-                        user_id: userId
+                        token: requestUploadToken
                     }),
                 })
                     .promise()
