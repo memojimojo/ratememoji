@@ -21,7 +21,8 @@ exports.handler = async function (event, context) {
         return;
     }
 
-    if (file.endsWith('portrait.jpg')) {
+    if (file.endsWith('raw-portrait.jpg')) {
+        const dest = file.substr(0,file.lastIndexOf('/')) + '/portrait.jpg';
         const face = await detectFace(s3Object);
         if (face) {
             const s3 = new S3();
@@ -32,7 +33,7 @@ exports.handler = async function (event, context) {
             const image = await crop(object.Body, face);
             await s3.putObject({
                 Bucket: bucket,
-                Key: file,
+                Key: dest,
                 Body: await image.toBuffer(),
             }).promise();
         }

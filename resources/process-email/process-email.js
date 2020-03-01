@@ -26,7 +26,7 @@ exports.handler = async function (event) {
                 }).promise(),
                 s3.putObject({
                     Bucket: process.env.USER_BUCKET,
-                    Key: userId + '/portrait.jpg',
+                    Key: userId + '/raw-portrait.jpg',
                     Body: portrait.content,
                 }).promise(),
             ]);

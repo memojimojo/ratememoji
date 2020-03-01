@@ -143,7 +143,12 @@ export class ApiStack extends cdk.Stack {
 
         bucket.grantRead(processImage);
         bucket.grantPut(processImage);
-        bucket.addObjectCreatedNotification(new s3n.LambdaDestination(processImage));
+        bucket.addObjectCreatedNotification(new s3n.LambdaDestination(processImage), {
+            suffix: 'raw-portrait.jpg',
+        });
+        bucket.addObjectCreatedNotification(new s3n.LambdaDestination(processImage), {
+            suffix: 'memoji.png',
+        });
     }
 
     private usersTable(...handlers: lambda.Function[]) {
