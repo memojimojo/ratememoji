@@ -21,7 +21,7 @@ exports.handler = async function (event, context) {
         return;
     }
 
-    if (file.endsWith('profile.jpg')) {
+    if (file.endsWith('portrait.jpg')) {
         const face = await detectFace(s3Object);
         if (face) {
             const s3 = new S3();

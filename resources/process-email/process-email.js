@@ -16,8 +16,8 @@ exports.handler = async function (event) {
         const userId = await checkUserId(token);
         const attachments = mail.attachments;
         const memoji = attachments.find(it => it.contentType === 'image/png');
-        const profile = attachments.find(it => it.contentType === 'image/jpeg');
-        if (userId && memoji && profile) {
+        const portrait = attachments.find(it => it.contentType === 'image/jpeg');
+        if (userId && memoji && portrait) {
             await Promise.all([
                 s3.putObject({
                     Bucket: process.env.USER_BUCKET,
@@ -26,8 +26,8 @@ exports.handler = async function (event) {
                 }).promise(),
                 s3.putObject({
                     Bucket: process.env.USER_BUCKET,
-                    Key: userId + '/profile.jpg',
-                    Body: profile.content,
+                    Key: userId + '/portrait.jpg',
+                    Body: portrait.content,
                 }).promise(),
             ]);
             return confirmUpload(mail.from.value[0].address, userId);
