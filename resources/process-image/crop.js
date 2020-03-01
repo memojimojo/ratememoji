@@ -12,11 +12,13 @@ module.exports = async (originalImage, boundingBox) => {
 };
 
 function cropArea(boundingBox, metadata) {
-    const padding = 10;
+    const horizontalPadding = boundingBox.Width * metadata.width * 0.2;
+    const verticalPadding = boundingBox.Height * metadata.height * 0.2;
+
     return {
-        left: parseInt(boundingBox.Left * metadata.width) - padding,
-        top: parseInt(boundingBox.Top * metadata.height) - padding,
-        width: parseInt(boundingBox.Width * metadata.width) + 2 * padding,
-        height: parseInt(boundingBox.Height * metadata.height) + 2 * padding,
+        left: parseInt(boundingBox.Left * metadata.width - horizontalPadding) ,
+        top: parseInt(boundingBox.Top * metadata.height - verticalPadding),
+        width: parseInt(boundingBox.Width * metadata.width + 2 * horizontalPadding),
+        height: parseInt(boundingBox.Height * metadata.height + 2 * verticalPadding),
     }
 }
