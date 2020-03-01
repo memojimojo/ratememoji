@@ -132,6 +132,7 @@ export class ApiStack extends cdk.Stack {
             code: lambda.Code.fromAsset(path.join(__dirname, '../resources/process-image')),
             handler: 'process-image.handler',
             runtime: lambda.Runtime.NODEJS_12_X,
+            timeout: cdk.Duration.seconds(10),
             initialPolicy: [
                 rekognitionPolicy
             ],
