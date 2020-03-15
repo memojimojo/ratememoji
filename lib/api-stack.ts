@@ -13,6 +13,7 @@ import s3n = require('@aws-cdk/aws-s3-notifications');
 import {RestApi} from "@aws-cdk/aws-apigateway";
 import {LayerVersion} from "@aws-cdk/aws-lambda";
 import {LocalCacheMode} from "@aws-cdk/aws-codebuild";
+import {CloudFrontWebDistribution, OriginAccessIdentity} from "@aws-cdk/aws-cloudfront";
 
 require('dotenv').config();
 
@@ -49,9 +50,11 @@ export class ApiStack extends cdk.Stack {
         });
 
         const requestUpload = this.requestUpload(api, usersLayer);
+        this.cloudFront(userBucket);
         this.processImage(userBucket);
-        this.usersTable(requestUpload);
+        this.usersTable(requestUpload, processEmail);
         this.requestUploadsTokensTable(requestUpload, processEmail);
+        this.assetTokensTable(processEmail);
         this.shareTokensTable(processEmail);
         this.codeBuild();
     }
@@ -172,6 +175,15 @@ export class ApiStack extends cdk.Stack {
         handlers.map(handler => table.grantReadWriteData(handler));
     }
 
+    private assetTokensTable(...handlers: lambda.Function[]) {
+        const table = new dynamodb.Table(this, 'AssetTokensTable', {
+            tableName: 'AssetTokens',
+            partitionKey: {name: 'token', type: dynamodb.AttributeType.STRING},
+            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+        });
+        handlers.map(handler => table.grantReadWriteData(handler));
+    }
+
     private shareTokensTable(...handlers: lambda.Function[]) {
         const table = new dynamodb.Table(this, 'ShareTokensTable', {
             partitionKey: { name: 'token', type: dynamodb.AttributeType.STRING },
@@ -179,6 +191,22 @@ export class ApiStack extends cdk.Stack {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
         });
         handlers.map(handler => table.grantReadWriteData(handler));
+    }
+
+    private cloudFront(bucket: s3.Bucket) {
+        const oai = new OriginAccessIdentity(this, 'CloudFront');
+        bucket.grantRead(oai);
+        new CloudFrontWebDistribution(this, 'UserUploads', {
+            originConfigs: [
+                {
+                    s3OriginSource: {
+                        s3BucketSource: bucket,
+                        originAccessIdentity: oai,
+                    },
+                    behaviors: [{isDefaultBehavior: true}]
+                }
+            ]
+        });
     }
 
     private codeBuild() {

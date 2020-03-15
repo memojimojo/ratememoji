@@ -18,15 +18,16 @@ exports.handler = async function (event) {
         const memoji = attachments.find(it => it.contentType === 'image/png');
         const portrait = attachments.find(it => it.contentType === 'image/jpeg');
         if (userId && memoji && portrait) {
+            const assetToken = await generateAssetToken(userId);
             await Promise.all([
                 s3.putObject({
                     Bucket: process.env.USER_BUCKET,
-                    Key: userId + '/memoji.png',
+                    Key: assetToken + '/memoji.png',
                     Body: memoji.content,
                 }).promise(),
                 s3.putObject({
                     Bucket: process.env.USER_BUCKET,
-                    Key: userId + '/raw-portrait.jpg',
+                    Key: assetToken + '/raw-portrait.jpg',
                     Body: portrait.content,
                 }).promise(),
             ]);
@@ -66,6 +67,28 @@ async function confirmUpload(email, userId) {
             public_url: process.env.PUBLIC_URL + '/publish/' + publishToken,
         }),
     }).promise();
+}
+
+async function generateAssetToken(userId) {
+    const assetToken = uuid();
+    await Promise.all([
+        dynamoDb.putItem({
+            TableName: 'AssetTokens',
+            Item: {
+                token: {S: assetToken},
+                userId: {S: userId},
+            }
+        }).promise(),
+        dynamoDb.updateItem({
+            TableName: 'Users',
+            Key: {id: {S: userId}},
+            UpdateExpression: 'set assetToken = :assetToken',
+            ExpressionAttributeValues: {
+                ':assetToken': {S: assetToken},
+            },
+        }).promise(),
+    ]);
+    return assetToken;
 }
 
 async function share(userId) {
