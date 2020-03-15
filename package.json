@@ -8,7 +8,8 @@
     "build": "tsc",
     "watch": "tsc -w",
     "test": "jest",
-    "cdk": "cdk"
+    "cdk": "cdk",
+    "postinstall": "for l in resources/*; do echo $l; npm install --prefix $l; done"
   },
   "devDependencies": {
     "@aws-cdk/assert": "^1.20.0",
