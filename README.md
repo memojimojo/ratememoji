@@ -1,5 +1,7 @@
 # Welcome to your CDK TypeScript project!
 
+![CI](https://github.com/memojimojo/ratememoji-api/workflows/CI/badge.svg)
+
 ## Fix Sharp Linux binary
 
 Before running `cdk deploy`:
