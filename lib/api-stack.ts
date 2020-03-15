@@ -1,4 +1,5 @@
 import cdk = require('@aws-cdk/core');
+import codebuild = require('@aws-cdk/aws-codebuild');
 import dynamodb = require('@aws-cdk/aws-dynamodb');
 import fs = require('fs');
 import lambda = require('@aws-cdk/aws-lambda');
@@ -11,6 +12,7 @@ import s3 = require('@aws-cdk/aws-s3');
 import s3n = require('@aws-cdk/aws-s3-notifications');
 import {RestApi} from "@aws-cdk/aws-apigateway";
 import {LayerVersion} from "@aws-cdk/aws-lambda";
+import {LocalCacheMode} from "@aws-cdk/aws-codebuild";
 
 require('dotenv').config();
 
@@ -51,6 +53,7 @@ export class ApiStack extends cdk.Stack {
         this.usersTable(requestUpload);
         this.requestUploadsTokensTable(requestUpload, processEmail);
         this.shareTokensTable(processEmail);
+        this.codeBuild();
     }
 
     private requestUpload(api: RestApi, ...layers: LayerVersion[]) {
@@ -176,5 +179,26 @@ export class ApiStack extends cdk.Stack {
             billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
         });
         handlers.map(handler => table.grantReadWriteData(handler));
+    }
+
+    private codeBuild() {
+        new codebuild.Project(this, 'RateMemojiApiBuild', {
+            projectName: 'RateMemojiApiBuild',
+            buildSpec: codebuild.BuildSpec.fromObject({
+                version: '0.2',
+                phases: {
+                    install: {
+                        commands: 'npm install'
+                    },
+                    build: {
+                        commands: [
+                            'npm run build',
+                            'npm run cdk deploy -- --require-approval never',
+                        ]
+                    }
+                },
+            }),
+            cache: codebuild.Cache.local(LocalCacheMode.DOCKER_LAYER),
+        });
     }
 }
