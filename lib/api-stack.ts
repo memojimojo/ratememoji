@@ -50,12 +50,13 @@ export class ApiStack extends cdk.Stack {
         });
 
         const requestUpload = this.requestUpload(api, usersLayer);
-        this.cloudFront(userBucket);
+        const userAssetsUrl = this.cloudFront(userBucket);
+        const getSharedPair = this.getSharedPair(api, userAssetsUrl);
         this.processImage(userBucket);
-        this.usersTable(requestUpload, processEmail);
+        this.usersTable(requestUpload, processEmail, getSharedPair);
         this.requestUploadsTokensTable(requestUpload, processEmail);
         this.assetTokensTable(processEmail);
-        this.shareTokensTable(processEmail);
+        this.shareTokensTable(processEmail, getSharedPair);
         this.codeBuild();
     }
 
@@ -157,6 +158,21 @@ export class ApiStack extends cdk.Stack {
         });
     }
 
+    private getSharedPair(api: RestApi, assetsUrl: string) {
+        const handler = new lambda.Function(this, 'GetSharedPair', {
+            code: lambda.Code.fromAsset(path.join(__dirname, '../resources/get-shared-pair')),
+            handler: 'get-shared-pair.handler',
+            runtime: lambda.Runtime.NODEJS_12_X,
+            environment: {
+                ASSETS_URL: assetsUrl
+            },
+        });
+        const resource = api.root.addResource('shares');
+        const sharedPair = resource.addResource('{token}');
+        sharedPair.addMethod('GET', new apigateway.LambdaIntegration(handler));
+        return handler;
+    }
+
     private usersTable(...handlers: lambda.Function[]) {
         const table = new dynamodb.Table(this, 'UsersTable', {
             partitionKey: {name: 'id', type: dynamodb.AttributeType.STRING},
@@ -196,7 +212,7 @@ export class ApiStack extends cdk.Stack {
     private cloudFront(bucket: s3.Bucket) {
         const oai = new OriginAccessIdentity(this, 'CloudFront');
         bucket.grantRead(oai);
-        new CloudFrontWebDistribution(this, 'UserUploads', {
+        const distribution = new CloudFrontWebDistribution(this, 'UserUploads', {
             originConfigs: [
                 {
                     s3OriginSource: {
@@ -207,6 +223,7 @@ export class ApiStack extends cdk.Stack {
                 }
             ]
         });
+        return 'https://' + distribution.domainName;
     }
 
     private codeBuild() {
