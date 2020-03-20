@@ -1,9 +1,9 @@
 const {Rekognition, S3} = require('aws-sdk');
 const detectFace = require('./detect-face');
 const crop = require('./crop');
+const client = new Rekognition();
 
 exports.handler = async function (event, context) {
-    const client = new Rekognition();
     const bucket = event.Records[0].s3.bucket.name;
     const file = event.Records[0].s3.object.key;
     const s3Object = {

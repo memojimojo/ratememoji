@@ -3,6 +3,7 @@ const {simpleParser} = require('mailparser');
 const dynamoDb = new DynamoDB();
 const s3 = new S3();
 const uuid = require('uuid/v4');
+const ses = new SES({apiVersion: '2010-12-01'});
 
 exports.handler = async function (event) {
     const messageId = event.Records[0].ses.mail.messageId;
@@ -53,7 +54,6 @@ async function checkUserId(requestUploadToken) {
 }
 
 async function confirmUpload(email, userId) {
-    const ses = new SES({apiVersion: '2010-12-01'});
     const publishToken = uuid();
     return ses.sendTemplatedEmail({
         Destination: {

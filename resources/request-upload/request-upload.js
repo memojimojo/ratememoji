@@ -1,6 +1,8 @@
 const {userIdFromEmail} = require('/opt/nodejs/users');
 const {DynamoDB, SES} = require('aws-sdk');
 const uuid = require('uuid/v4');
+const dynamoDb = new DynamoDB();
+const ses = new SES({apiVersion: '2010-12-01'});
 
 exports.handler = async function (event) {
     try {
@@ -11,7 +13,6 @@ exports.handler = async function (event) {
 
                 const userId = userIdFromEmail(json.email);
                 const requestUploadToken = uuid();
-                const dynamoDb = new DynamoDB();
                 await Promise.all([
                     await dynamoDb.putItem({
                         TableName: 'Users',
@@ -28,7 +29,6 @@ exports.handler = async function (event) {
                     }).promise()
                 ]);
 
-                const ses = new SES({apiVersion: '2010-12-01'});
                 await ses.sendTemplatedEmail({
                     Destination: {
                         ToAddresses: [json.email]
@@ -54,15 +54,12 @@ exports.handler = async function (event) {
         }
 
         return {
-            statusCode: 400,
-            headers: {},
-            body: ""
+            statusCode: 400
         };
     } catch (error) {
         const body = error.stack || JSON.stringify(error, null, 2);
         return {
             statusCode: 400,
-            headers: {},
             body: JSON.stringify(body)
         }
     }

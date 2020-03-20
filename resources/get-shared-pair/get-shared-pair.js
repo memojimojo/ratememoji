@@ -1,10 +1,10 @@
 const {DynamoDB} = require('aws-sdk');
+const dynamoDb = new DynamoDB();
 
 exports.handler = async function (event) {
     try {
         if (event.httpMethod === 'GET') {
             const token = event.pathParameters.token;
-            const dynamoDb = new DynamoDB();
             const userId = await dynamoDb.getItem({
                 TableName: 'ShareTokens',
                 Key: {token: {S: token}},
